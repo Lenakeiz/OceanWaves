@@ -56,6 +56,8 @@ namespace octet {
 	  mat4t &camera_to_world = camera_node->access_nodeToParent();
 	  mouse_look_helper.update(camera_to_world);
 
+	  om->Update(0.0f);
+
       // update matrices. assume 30 fps.
       app_scene->update(1.0f/30);
 

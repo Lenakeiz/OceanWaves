@@ -2,17 +2,27 @@
 
 #define SEG_WIDTH 1.0f
 #define MULTIPLIER 1
+#define PI 3.14159265358979323846264338327950288
 
 namespace octet
 {
-
-	const float GRAVITY = 9.81f;
-	const double PI = 3.14159265358979323846264338327950288;
 
 	class OceanMesh
 	{
 
 	private:
+
+		struct GerstnerWave
+		{
+			float wavelength;
+			float amplitude;
+			float speed;
+			vec3 direction;
+
+			GerstnerWave() = default;
+			GerstnerWave(float w, float a, float s, float d) :wavelength(w), amplitude(a), speed(s), direction(d){}
+
+		};
 
 		struct VertexOcean
 		{
@@ -123,7 +133,7 @@ namespace octet
 
 		void Update(float deltaTime)
 		{
-			SimulateOceanFFT(_simulationTime, 1.0f / (MULTIPLIER * SEG_WIDTH));
+			SimulateOcean(_simulationTime, 1.0f / (MULTIPLIER * SEG_WIDTH));
 			//SetupRendering();
 			_simulationTime += deltaTime;
 		}
@@ -165,7 +175,46 @@ namespace octet
 			
 		}
 
-		void SimulateOceanFFT
+		void SimulateOcean(float t, float scale)
+		{
+			vertCount = 0;
+
+			unsigned int map_widht = _m * MULTIPLIER;
+			unsigned int map_height = _n * MULTIPLIER;
+
+			float terrain_width = SEG_WIDTH * (map_widht - 1);
+			float terrain_eight = SEG_WIDTH * (map_height - 1);
+
+			float half_terrain_width = terrain_width * 0.5f;
+			float half_terrain_height = terrain_eight * 0.5f;
+
+
+			for (unsigned int j = 0; j < map_height; ++j)
+			{
+				for (unsigned int i = 0; i < map_widht; ++i)
+				{
+					//unsigned int idx = i + (j * map_widht);
+
+					float u = i / static_cast<float>(map_widht - 1);
+					float v = j / static_cast<float>(map_height - 1);
+
+					float x = (u * terrain_width) - half_terrain_width;
+					float y = 0.0f;
+					float z = (v * terrain_eight) - half_terrain_height;
+
+					VertexOcean vo;
+					vo.norm = vec3p(0.0f, 1.0f, 0.0f);
+					vo.pos = vec3p(x, y, z);
+
+					vertices.push_back(vo);
+
+					//vertices[idx].norm = vec3p(0.0f, 1.0f, 0.0f);
+					//vertices[idx].pos = vec3p(x, y, z);
+					++vertCount;
+				}
+
+			}
+		}
 
 	};
 }
