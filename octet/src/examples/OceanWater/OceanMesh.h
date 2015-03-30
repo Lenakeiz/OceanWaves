@@ -1,7 +1,7 @@
 #pragma once
 
-#define SEG_WIDTH 1.0f
-#define MULTIPLIER 5
+#define SEG_WIDTH 5.0f
+#define MULTIPLIER 2
 #define PI 3.14159265358979323846264338327950288
 
 namespace octet
@@ -49,10 +49,9 @@ namespace octet
 
 		GerstnerWave* gw;
 		ref<mesh> oceanMesh;
-
+		int mode = 5;
 		float _simulationTime;
-
-		//Grid dimension
+		unsigned long long fixedTime = 0;		//Grid dimension
 		unsigned int _m = 100;
 		unsigned int _n = 100;
 		//Spatial dimensions of grid
@@ -146,15 +145,21 @@ namespace octet
 
 		void Update(float deltaTime)
 		{
-			SimulateOcean(_simulationTime, 1.0f / (MULTIPLIER * SEG_WIDTH));
+			SimulateOcean(fixedTime, 1.0f / (MULTIPLIER * SEG_WIDTH));
 			SetupRendering();
-			_simulationTime += deltaTime;
+			//_simulationTime += deltaTime;
+			++fixedTime;
 		}
 
 		//GET/SET FUNTIONS
 		mesh* getMeshInstance()
 		{
 			return oceanMesh;
+		}
+
+		void SetMode(int m)
+		{
+			mode = m;
 		}
 
 	private:
@@ -170,6 +175,7 @@ namespace octet
 			oceanMesh->set_vertices(vertices);
 			oceanMesh->set_indices(indices);
 			
+			oceanMesh->set_mode(mode);
 		}
 
 		void SimulateOcean(float t, float scale)

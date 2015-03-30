@@ -27,6 +27,36 @@ namespace octet {
     OceanWater(int argc, char **argv) : app(argc, argv) {
     }
 
+	void keyboard(){
+		if (is_key_going_down('1')){
+			om->SetMode(0);
+		}
+		else if (is_key_going_down('2')){
+			om->SetMode(1);
+		}
+		else if (is_key_going_down('3')){
+			om->SetMode(2);
+		}
+		else if (is_key_going_down('4')){
+			om->SetMode(3);
+		}
+		else if (is_key_going_down('5')){
+			om->SetMode(5);
+		}
+		else if (is_key_down('W')){
+			camera->get_node()->translate(vec3(0, 0, -5));
+		}
+		else if (is_key_down('S')){
+			camera->get_node()->translate(vec3(0, 0, 5));
+		}
+		else if (is_key_down('A')){
+			camera->get_node()->translate(vec3(-5, 0, 0));
+		}
+		else if (is_key_down('D')){
+			camera->get_node()->translate(vec3(5, 0, 0));
+		}
+	}
+
     /// this is called once OpenGL is initialized
 	void app_init() {
 		mouse_look_helper.init(this, 200.0f / 360.0f, false);
@@ -55,6 +85,9 @@ namespace octet {
 
     /// this is called to draw the world
     void draw_world(int x, int y, int w, int h) {
+
+		
+
       int vx = 0, vy = 0;
       get_viewport_size(vx, vy);
       app_scene->begin_render(vx, vy);
@@ -67,7 +100,7 @@ namespace octet {
 	  float delta_time = (now - start).count();
 
 	  om->Update(delta_time);
-
+	  keyboard();
       // update matrices. assume 30 fps.
       app_scene->update(1.0f/30);
 
