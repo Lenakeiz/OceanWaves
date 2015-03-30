@@ -1,7 +1,7 @@
 #pragma once
 
 #define SEG_WIDTH 1.0f
-#define MULTIPLIER 1
+#define MULTIPLIER 5
 #define PI 3.14159265358979323846264338327950288
 
 namespace octet
@@ -20,7 +20,16 @@ namespace octet
 			vec3 direction;
 
 			GerstnerWave() = default;
-			GerstnerWave(float w, float a, float s, float d) :wavelength(w), amplitude(a), speed(s), direction(d){}
+			GerstnerWave(float w, float a, float s, vec3 d) :wavelength(w), amplitude(a), speed(s), direction(d){}
+
+		public:
+			float GetHeightPosition(float x, float z, float time)
+			{
+				float frequency = 2 * PI / wavelength;
+				float omega = speed * frequency;
+				float displacement = direction.dot(vec3((float)x, 0.0f, (float)z));
+				return amplitude * sinf(displacement * frequency + omega * time);
+			}
 
 		};
 
@@ -38,13 +47,14 @@ namespace octet
 		dynarray<uint32_t> indices;
 		uint32_t indexCount;
 
+		GerstnerWave* gw;
 		ref<mesh> oceanMesh;
 
 		float _simulationTime;
 
-		//Grid dimension: Tessendorf approach
-		unsigned int _m = 128;
-		unsigned int _n = 128;
+		//Grid dimension
+		unsigned int _m = 100;
+		unsigned int _n = 100;
 		//Spatial dimensions of grid
 		float _xdim;
 		float _ydim;
@@ -60,10 +70,13 @@ namespace octet
 		OceanMesh() : _speed(4.0f), _L_Length(2.0f), _amplitude(1.0f)
 		{
 			oceanMesh = new mesh();
+			gw = new GerstnerWave(20.0f, 1.0f, 0.5f, vec3(0.0f, 0.0f, 1.0f));
 		}
 
 		~OceanMesh()
 		{
+			delete gw;
+			gw = NULL;
 		}
 
 		void Init()
@@ -134,12 +147,11 @@ namespace octet
 		void Update(float deltaTime)
 		{
 			SimulateOcean(_simulationTime, 1.0f / (MULTIPLIER * SEG_WIDTH));
-			//SetupRendering();
+			SetupRendering();
 			_simulationTime += deltaTime;
 		}
 
-		void Draw(){}
-
+		//GET/SET FUNTIONS
 		mesh* getMeshInstance()
 		{
 			return oceanMesh;
@@ -148,21 +160,6 @@ namespace octet
 	private:
 		void SetupRendering()
 		{
-			//oceanMesh->allocate(sizeof(VertexOcean) * vertCount, sizeof(uint32_t) * indexCount);
-			//oceanMesh->set_params(sizeof(VertexOcean), indexCount, vertCount, GL_TRIANGLES, GL_UNSIGNED_INT);
-
-			//oceanMesh->allocate(sizeof(vert)*plane_.size(), sizeof(unsigned)*indicies.size());
-			//oceanMesh->set_params(sizeof(vert), indicies.size(), plane_.size(), GL_TRIANGLES, GL_UNSIGNED_INT);
-			//oceanMesh->clear_attributes();
-			//oceanMesh->add_attribute(octet::attribute_pos, 3, GL_FLOAT, 0);
-			//oceanMesh->add_attribute(octet::attribute_normal, 3, GL_FLOAT, 12, 0);
-			//oceanMesh->add_attribute(octet::attribute_color, 4, GL_UNSIGNED_BYTE, 24, TRUE);
-
-			//octet::gl_resource::wolock vl(mesh_->get_vertices());
-			//octet::gl_resource::wolock il(mesh_->get_indices());
-			//unsigned * indxP = (unsigned*)il.u8();
-			//vert *vtxP = (vert*)vl.u8();
-
 			//// describe the structure of my_vertex to OpenGL
 			oceanMesh->clear_attributes();
 			oceanMesh->add_attribute(attribute_pos, 3, GL_FLOAT, 0);
@@ -199,14 +196,16 @@ namespace octet
 					float v = j / static_cast<float>(map_height - 1);
 
 					float x = (u * terrain_width) - half_terrain_width;
-					float y = 0.0f;
 					float z = (v * terrain_eight) - half_terrain_height;
+
+					float y = gw->GetHeightPosition(x, z, t);
 
 					VertexOcean vo;
 					vo.norm = vec3p(0.0f, 1.0f, 0.0f);
 					vo.pos = vec3p(x, y, z);
 
-					vertices.push_back(vo);
+					//vec3p(start_pos + vec3(offset * j, -offset * i, 0.0f) + vec3(0, 0, get_wave_pos(j, i)));
+					vertices[i + j * map_widht] = vo ;
 
 					//vertices[idx].norm = vec3p(0.0f, 1.0f, 0.0f);
 					//vertices[idx].pos = vec3p(x, y, z);
