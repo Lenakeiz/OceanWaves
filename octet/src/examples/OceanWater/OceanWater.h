@@ -28,7 +28,11 @@ namespace octet {
     }
 
 	void keyboard(){
-		if (is_key_going_down('1')){
+		if (is_key_down(key::key_esc))
+		{
+			exit(1);
+		}
+		else if (is_key_going_down('1')){
 			om->SetMode(0);
 		}
 		else if (is_key_going_down('2')){
