@@ -4,10 +4,12 @@
 #define MULTIPLIER 1
 #define PI 3.14159265358979323846264338327950288
 
+#define NUM_WAVES 8
+
 namespace octet
 {
 
-	class OceanMesh
+	class OceanMesh 
 	{
 
 	private:
@@ -23,144 +25,113 @@ namespace octet
 			GerstnerWave(float w, float a, float s, vec3 d) :wavelength(w), amplitude(a), speed(s), direction(d){}
 
 		public:
-			float GetHeightPosition(float x, float z, float time)
+			float GetHeightPosition(float x, float z, float t)
 			{
 				float frequency = 2 * PI / wavelength;
 				float omega = speed * frequency;
 				float displacement = direction.dot(vec3((float)x, 0.0f, (float)z));
-				return amplitude * sinf(displacement * frequency + omega * time);
+				return amplitude * sinf(displacement * frequency + omega * t);
 			}
 
 		};
 
+		//this struct is used to instruct the OpenGl and the vertex sader
 		struct VertexOcean
 		{
 			vec3p pos;
 			vec3p norm;
+			uint32_t color;
 			//vec3p originalposition;
 			//vec2p textcoords;
 			//vec3p origin;
 		};
 
-		dynarray<VertexOcean> vertices;
-		dynarray<vec3p> points;
-		uint32_t vertCount;
-		dynarray<uint32_t> indices;
-		uint32_t indexCount;
+		//dynarray<VertexOcean> vertices;
+		//dynarray<uint32_t> indices;
 
-		GerstnerWave* gw;
+		dynarray<GerstnerWave> waves;
+		GerstnerWave* prova;
 		ref<mesh> oceanMesh;
-		int mode = 5;
-		float _simulationTime;
-		unsigned long long fixedTime = 0;		//Grid dimension
-		unsigned int _m = 128;
-		unsigned int _n = 128;
-		//Spatial dimensions of grid
-		float _xdim;
-		float _ydim;
+		//Grid dimension
+		uint32_t _m = 128;
+		uint32_t _n = 128;
+		uint32_t map_widht;
+		uint32_t map_height;
+		float terrain_width;
+		float terrain_eight;
+		float half_terrain_width;
+		float half_terrain_height;
 
-		//Tessendorf Simulation base parameters
-		float _speed;
-		float _L_Length;
-		float _l_Length;
-		float _amplitude;
+		int mode = 5;
+
+		//Not used cause updating using delta time step cause bad behaviour!
+		float _simulationTime;
+		unsigned long long fixedTime = 0;
+
+		ref<visual_scene> _app;
 
 	public:
 
-		OceanMesh() : _speed(4.0f), _L_Length(2.0f), _amplitude(1.0f)
+		OceanMesh()
 		{
 			oceanMesh = new mesh();
-			gw = new GerstnerWave(20.0f, 8.0f, 0.5f, vec3(1.0f, 0.0f, 1.0f).normalize());
+			prova = new GerstnerWave(50.0f, 2.0f, 1.0f, vec3(1.0, 0.0f, 1.0f).normalize());
 		}
 
 		~OceanMesh()
 		{
-			delete gw;
-			gw = NULL;
 		}
 
-		void Init()
+		// this function converts three floats into a RGBA 8 bit color
+		static uint32_t make_color(vec3 colour) {
+			float r = colour.x();
+			float g = colour.y();
+			float b = colour.z();
+			return 0xff000000 + ((int)(r*255.0f) << 0) + ((int)(g*255.0f) << 8) + ((int)(b*255.0f) << 16);
+		}
+
+		void Init(visual_scene *scene)
 		{
-			unsigned int map_widht = _m * MULTIPLIER;
-			unsigned int map_height = _n * MULTIPLIER;
-
-			float terrain_width = SEG_WIDTH * (map_widht - 1);
-			float terrain_eight = SEG_WIDTH * (map_height - 1);
-
-			float half_terrain_width = terrain_width * 0.5f;
-			float half_terrain_height = terrain_eight * 0.5f;
 			
+
+			map_widht = _m * MULTIPLIER;
+			map_height = _n * MULTIPLIER;
+
+			terrain_width = SEG_WIDTH * (map_widht - 1);
+			terrain_eight = SEG_WIDTH * (map_height - 1);
+
+			half_terrain_width = terrain_width * 0.5f;
+			half_terrain_height = terrain_eight * 0.5f;
+			
+			this->_app = scene;
+
 			size_t num_vertices = map_widht * map_height;
 			size_t num_indices = (map_widht - 1) * (map_height - 1) * 6;
+
 			oceanMesh->allocate(sizeof(VertexOcean) * num_vertices, sizeof(uint32_t) * num_indices);
 			oceanMesh->set_params(sizeof(VertexOcean), num_indices, num_vertices, GL_TRIANGLES, GL_UNSIGNED_INT);
-			//vertices.resize(map_widht * map_height);// = new VertexOcean[map_widht * map_height];
-			
-			points.resize(map_widht * map_height);
+			//vertices.reserve(num_vertices);// = new VertexOcean[map_widht * map_height];
+			//indices.reserve(num_indices);
 
+			// describe the structure of my_vertex to OpenGL
 			oceanMesh->add_attribute(attribute_pos, 3, GL_FLOAT, 0);
 			oceanMesh->add_attribute(attribute_normal, 3, GL_FLOAT, 12);
+			oceanMesh->add_attribute(attribute_color, 4, GL_UNSIGNED_BYTE, 24, GL_TRUE);
 
-			for (unsigned int j = 0; j != map_height; ++j)
-			{
-				for (unsigned int i = 0; i != map_widht; ++i)
-				{
-					unsigned int idx = i + (j * map_widht);
+			param_shader *s = new param_shader("shaders/default.vs", "shaders/simple_color.fs");
+			material *wm = new material(vec4(1.0f, 0.0f, 0.0f, 1), s);
+			material *color = new material(vec4(0, 0, 1, 0.5f));
+			scene_node *node = new scene_node();
+			//node->translate(vec3(0, -50, 0));
 
-					float u = i / static_cast<float>(map_widht - 1);
-					float v = j / static_cast<float>(map_height - 1);
-
-					float x = (u * terrain_width) - half_terrain_width;
-					float y = 0.0f;
-					float z = (v * terrain_eight) - half_terrain_height;
-
-					/*VertexOcean vo;
-					vo.norm = vec3p(0.0f, 1.0f, 0.0f);
-					vo.pos = vec3p(x, y, z);
-
-					vertices[idx] = vo;*/
-
-					points[idx] = vec3p(x, y, z);
-
-					//vertices[idx].norm = vec3p(0.0f, 1.0f, 0.0f);
-					//vertices[idx].pos = vec3p(x, y, z);
-					++vertCount;
-				}
-
-			}
-
-			
-
-			// Generate indices.
-			//const unsigned int num_triangles = (map_widht - 1) * (map_height - 1) * 2;
-			//indices.resize(num_triangles * 3);//  = new unsigned int[num_triangles * 3];
-
-			//unsigned int index = 0;
-			//for (unsigned int j = 0; j < map_height - 1; ++j)
-			//{
-			//	for (unsigned int i = 0; i < map_widht - 1; ++i)
-			//	{
-			//		unsigned int vertex_index = i + (j * map_widht);
-
-			//		indices[index++] = vertex_index;
-			//		indices[index++] = (vertex_index + map_widht);
-			//		indices[index++] = (vertex_index + 1);
-
-			//		indices[index++] = (vertex_index + map_widht);
-			//		indices[index++] = (vertex_index + map_widht + 1);
-			//		indices[index++] = (vertex_index + 1);
-			//	}
-			//}
-
-			//indexCount = index - 1;
-
-			SetupRendering();
+			_app->add_mesh_instance(new mesh_instance(node, oceanMesh, color));
+								
 		}
 
-		void Update(float deltaTime)
+		void FixedUpdate()
 		{
-			SimulateOcean(fixedTime, 1.0f / (MULTIPLIER * SEG_WIDTH));
 			SetupRendering();
+			SimulateOcean(fixedTime);
 			//_simulationTime += deltaTime;
 			++fixedTime;
 		}
@@ -179,78 +150,67 @@ namespace octet
 	private:
 		void SetupRendering()
 		{
-			unsigned int map_widht = _m * MULTIPLIER;
-			unsigned int map_height = _n * MULTIPLIER;
-			//// describe the structure of my_vertex to OpenGL
-			//oceanMesh->clear_attributes();
+			// describe the structure of my_vertex to OpenGL
+			oceanMesh->clear_attributes();
+
+			oceanMesh->add_attribute(attribute_pos, 3, GL_FLOAT, 0);
+			oceanMesh->add_attribute(attribute_normal, 3, GL_FLOAT, 12);
+			oceanMesh->add_attribute(attribute_color, 4, GL_UNSIGNED_BYTE, 24, GL_TRUE);
 
 			//oceanMesh->add_attribute(attribute_uv, 2, GL_FLOAT, 24);
 			//oceanMesh->set_params(32, 0, 0, GL_TRIANGLES, GL_UNSIGNED_INT);
-		
-			gl_resource::wolock vl(oceanMesh->get_vertices());
-			VertexOcean *vtx = (VertexOcean *)vl.u8();
-			gl_resource::wolock il(oceanMesh->get_indices());
-			uint32_t *idx = il.u32();
-
-			for (unsigned int j = 0; j != map_height; ++j)
-			{
-				for (unsigned int i = 0; i != map_widht; ++i)
-				{
-					unsigned int idx = i + (j * map_widht);
-					vtx->pos = points[idx];
-					vtx->norm = vec3p(0.0f, 1.0f, 0.0f);
-					vtx++;
-				}
-			}
-
-			//uint32_t vn = 0;
-
-			for (size_t i = 0; i != map_height * (map_height - 1) ; ++i) {
-				// 0--2
-				// | \|
-				// 1--3
-				if (i % map_widht != map_widht - 1){
-					idx[0] = i;
-					idx[1] = i + map_widht + 1;
-					idx[2] = i + 1;
-					idx[3] = i;
-					idx[4] = i + map_widht;
-					idx[5] = i + map_widht + 1;
-					idx += 6;
-				}
-			}
-			//oceanMesh->set_vertices(vertices);
-			//oceanMesh->set_indices(indices);
-			
 			oceanMesh->set_mode(mode);
 		}
 
-		void SimulateOcean(float t, float scale)
+		void SimulateOcean(float t)
 		{
-			vertCount = 0;
 
-			unsigned int map_widht = _m * MULTIPLIER;
-			unsigned int map_height = _n * MULTIPLIER;
+			gl_resource::wolock vl(oceanMesh->get_vertices());
+			VertexOcean* vtx = (VertexOcean *)vl.u8();
+			gl_resource::wolock il(oceanMesh->get_indices());
+			uint32_t *idx = il.u32();
 
-			float terrain_width = SEG_WIDTH * (map_widht - 1);
-			float terrain_eight = SEG_WIDTH * (map_height - 1);
+			//// make the vertices
+			//for (size_t i = 0; i != mesh_size; ++i) {
+			//	for (size_t j = 0; j != mesh_size; ++j) {
+			//		vec3 wavePosition = gerstner_wave_position(j, i);
+			//		vtx->pos = vec3p(vec3(1.0f * j, -1.0f * i, 0.0f) + wavePosition);
+			//		vec3 normalPosition = gerstner_wave_normals(wavePosition);
+			//		vtx->normal = vec3p(wavePosition);
+			//		vtx->color = make_color(sine_waves[0].colour);
+			//		vtx++;
+			//	}
+			//}
 
-			float half_terrain_width = terrain_width * 0.5f;
-			float half_terrain_height = terrain_eight * 0.5f;
+			//// make the triangles
+			//uint32_t vn = 0;
+			//for (size_t i = 0; i != mesh_size * (mesh_size - 1); ++i) {
+			//	if (i % mesh_size != mesh_size - 1){
+			//		idx[0] = i;
+			//		idx[1] = i + mesh_size + 1;
+			//		idx[2] = i + 1;
+			//		idx += 3;
+
+			//		idx[0] = i;
+			//		idx[1] = i + mesh_size;
+			//		idx[2] = i + mesh_size + 1;
+			//		idx += 3;
+			//	}
+			//}
 
 			for (unsigned int j = 0; j < map_height; ++j)
 			{
 				for (unsigned int i = 0; i < map_widht; ++i)
 				{
-					//unsigned int idx = i + (j * map_widht);
+					//uint32_t idx = i + (j * map_widht);
 
 					float u = i / static_cast<float>(map_widht - 1);
 					float v = j / static_cast<float>(map_height - 1);
 
 					float x = (u * terrain_width) - half_terrain_width;
 					float z = (v * terrain_eight) - half_terrain_height;
-					float y = 0.0f;
-					//float y = gw->GetHeightPosition(x, z, t);
+					//float y = 0.0f;
+					float y = prova->GetHeightPosition(x, z, t);
 
 					/*VertexOcean vo;
 					vo.norm = vec3p(0.0f, 1.0f, 0.0f);
@@ -258,13 +218,28 @@ namespace octet
 
 					vertices[idx] = vo;*/
 
-					points[i + (j * map_widht)] = vec3p(x, y, z);
-
-					//vertices[idx].norm = vec3p(0.0f, 1.0f, 0.0f);
-					//vertices[idx].pos = vec3p(x, y, z);
-					++vertCount;
+					vec3 wavePosition = vec3(0.0f, prova->GetHeightPosition(x, z, t), 0.0f);//gerstner_wave_position(j, i);
+					vtx->pos = vec3p(vec3(1.0f * j, 0.0f, -1.0f * i) + wavePosition);//vec3p(x, y, z);//
+					//vec3 normalPosition = gerstner_wave_normals(wavePosition);
+					vtx->norm = vec3p(0.0f, 1.0f, 0.0f);//vec3p(wavePosition);
+					vtx->color = make_color(vec3(0.0f,0.3f,1.0f));
+					vtx++;
 				}
 
+			}
+
+			// make the triangles
+			for (size_t i = 0; i != map_height * (map_height - 1); ++i) {
+				if (i % map_widht != map_widht - 1){
+					idx[0] = i;
+					idx[1] = i + map_widht + 1;
+					idx[2] = i + 1;
+					idx += 3;
+					idx[0] = i;
+					idx[1] = i + map_widht;
+					idx[2] = i + map_widht + 1;
+					idx += 3;
+				}
 			}
 		}
 

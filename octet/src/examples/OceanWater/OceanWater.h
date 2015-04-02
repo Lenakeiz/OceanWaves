@@ -63,9 +63,8 @@ namespace octet {
 
     /// this is called once OpenGL is initialized
 	void app_init() {
+		
 		mouse_look_helper.init(this, 200.0f / 360.0f, false);
-		om = new OceanMesh();
-		om->Init();
 		app_scene =  new visual_scene();
 		app_scene->create_default_camera_and_lights();
 
@@ -75,7 +74,10 @@ namespace octet {
 
 		start = std::chrono::system_clock::now();
 
-		mat4t mat;
+		om = new OceanMesh();
+		om->Init(app_scene);
+
+		/*mat4t mat;
 
 		mat.loadIdentity();
 		mat.translate(0, -0.5f, 0);
@@ -84,13 +86,12 @@ namespace octet {
 		
 		app_scene->add_child(node);
 		app_scene->add_mesh_instance(new mesh_instance(node, om->getMeshInstance(), color));
-
+		*/
 	}
 
     /// this is called to draw the world
     void draw_world(int x, int y, int w, int h) {
 
-		
 
       int vx = 0, vy = 0;
       get_viewport_size(vx, vy);
@@ -103,7 +104,7 @@ namespace octet {
 	  std::chrono::time_point<std::chrono::system_clock> now = std::chrono::system_clock::now();
 	  float delta_time = (now - start).count();
 
-	  om->Update(delta_time);
+	  om->FixedUpdate();
 	  keyboard();
       // update matrices. assume 30 fps.
       app_scene->update(1.0f/30);
