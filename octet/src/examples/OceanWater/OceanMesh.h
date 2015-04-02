@@ -28,9 +28,9 @@ namespace octet
 			float GetHeightPosition(float x, float z, float t)
 			{
 				float frequency = 2 * PI / wavelength;
-				float omega = speed * frequency;
+				float phase = speed * frequency;
 				float displacement = direction.dot(vec3((float)x, 0.0f, (float)z));
-				return amplitude * sinf(displacement * frequency + omega * t);
+				return amplitude * sinf(displacement * frequency + phase * t);
 			}
 
 		};
@@ -122,7 +122,8 @@ namespace octet
 			material *wm = new material(vec4(1.0f, 0.0f, 0.0f, 1), s);
 			material *color = new material(vec4(0, 0, 1, 0.5f));
 			scene_node *node = new scene_node();
-			//node->translate(vec3(0, -50, 0));
+			node->translate(vec3(0, -10.0f, 0));
+			//node->rotate(90.0f, vec3(1.0, 0.0f, 0.0f));
 
 			_app->add_mesh_instance(new mesh_instance(node, oceanMesh, color));
 								
