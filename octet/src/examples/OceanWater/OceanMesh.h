@@ -49,6 +49,17 @@ namespace octet
 				pos.z() = steepness * amplitude * direction.z() * cosf(displacement * frequency + phase * t);
 				return pos;
 			}
+
+			vec3 GetNormal(float x, float z, float t, vec3 point)
+			{
+				vec3 nor(0.0f, 0.0f, 0.0f);
+				float displacement = direction.dot(point);
+				nor.y() -= steepness * amplitude * frequency * sinf(frequency * displacement + phase * t);
+				nor.x() -= direction.x() * amplitude * frequency * cosf(frequency * displacement + phase * t);
+				nor.z() -= direction.z() * amplitude * frequency * cosf(frequency * displacement + phase * t);
+				return nor;
+			}
+
 		};
 
 		//this struct is used to instruct the OpenGl and the vertex sader
@@ -196,6 +207,16 @@ namespace octet
 			return contribute;
 		}
 
+		vec3 GetGerstnerNormal(float x, float z, float t, vec3 finalPoint)
+		{
+			vec3 contribute(0.0f, 1.0f, 0.0f);
+			for each (GerstnerWave gw in waves)
+			{
+				contribute += gw.GetNormal(x, z, t, finalPoint);
+			}
+			return contribute;
+		}
+
 		void SetupRendering()
 		{
 			// describe the structure of my_vertex to OpenGL
@@ -240,11 +261,11 @@ namespace octet
 
 					vertices[idx] = vo;*/
 
-					vec3 GerstnerPosition = GetGerstnerContribution(x, z, t);
-					vtx->pos = vec3p(vec3(x, 0.0f, z) + GerstnerPosition);//vec3p(x, y, z);//
+					vec3 finalPosition = vec3(x, 0.0f, z) + GetGerstnerContribution(x, z, t);
+					vtx->pos = vec3p(finalPosition);//vec3p(x, y, z);//
 					//vec3 normalPosition = gerstner_wave_normals(wavePosition);
-					vtx->norm = vec3p(0.0f, 1.0f, 0.0f);//vec3p(wavePosition);
-					vtx->color = make_color(vec3(1.0f,0.3f,1.0f));
+					vtx->norm = GetGerstnerNormal(x, z, t, finalPosition);
+					vtx->color = make_color(vec3(0.0f,0.5f,1.0f));
 					vtx++;
 				}
 
