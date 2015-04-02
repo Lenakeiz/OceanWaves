@@ -4,7 +4,7 @@
 #define MULTIPLIER 1
 #define PI 3.14159265358979323846264338327950288
 
-#define NUM_WAVES 8
+#define NUM_WAVES 3
 
 namespace octet
 {
@@ -16,23 +16,39 @@ namespace octet
 
 		struct GerstnerWave
 		{
+		public:
 			float wavelength;
 			float amplitude;
 			float speed;
 			vec3 direction;
+			float frequency;
+			float phase;
+			float steepness;
 
 			GerstnerWave() = default;
-			GerstnerWave(float w, float a, float s, vec3 d) :wavelength(w), amplitude(a), speed(s), direction(d){}
+			GerstnerWave(float w, float a, float s, vec3 d, float totSteep) : wavelength(w), amplitude(a), speed(s), direction(d)
+			{
+				frequency = 2 * PI / wavelength;
+				phase = speed * frequency;
+				steepness = totSteep / (NUM_WAVES * frequency * amplitude);
+			}
 
-		public:
+		public:			
 			float GetHeightPosition(float x, float z, float t)
 			{
-				float frequency = 2 * PI / wavelength;
-				float phase = speed * frequency;
 				float displacement = direction.dot(vec3((float)x, 0.0f, (float)z));
 				return amplitude * sinf(displacement * frequency + phase * t);
 			}
 
+			vec3 GetPosition(float x, float z, float t)
+			{
+				vec3 pos(0.0f,0.0f,0.0f);
+				float displacement = direction.dot(vec3((float)x, 0.0f, (float)z));
+				pos.y() = amplitude * sinf(displacement * frequency + phase * t);
+				pos.x() = steepness * amplitude * direction.x() * cosf(displacement * frequency + phase * t);
+				pos.z() = steepness * amplitude * direction.z() * cosf(displacement * frequency + phase * t);
+				return pos;
+			}
 		};
 
 		//this struct is used to instruct the OpenGl and the vertex sader
@@ -41,20 +57,16 @@ namespace octet
 			vec3p pos;
 			vec3p norm;
 			uint32_t color;
-			//vec3p originalposition;
-			//vec2p textcoords;
-			//vec3p origin;
 		};
-
-		//dynarray<VertexOcean> vertices;
-		//dynarray<uint32_t> indices;
 
 		dynarray<GerstnerWave> waves;
 		GerstnerWave* prova;
 		ref<mesh> oceanMesh;
+		//other parameters
+		float _totalSteepness;
 		//Grid dimension
-		uint32_t _m = 128;
-		uint32_t _n = 128;
+		uint32_t _m = 80;
+		uint32_t _n = 80;
 		uint32_t map_widht;
 		uint32_t map_height;
 		float terrain_width;
@@ -69,13 +81,14 @@ namespace octet
 		unsigned long long fixedTime = 0;
 
 		ref<visual_scene> _app;
+		random rand;
 
 	public:
 
 		OceanMesh()
 		{
 			oceanMesh = new mesh();
-			prova = new GerstnerWave(50.0f, 2.0f, 1.0f, vec3(1.0, 0.0f, 1.0f).normalize());
+			prova = new GerstnerWave(50.0f, 2.0f, 1.0f, vec3(1.0, 0.0f, 1.0f).normalize(), 0.0f);
 		}
 
 		~OceanMesh()
@@ -92,8 +105,6 @@ namespace octet
 
 		void Init(visual_scene *scene)
 		{
-			
-
 			map_widht = _m * MULTIPLIER;
 			map_height = _n * MULTIPLIER;
 
@@ -105,13 +116,14 @@ namespace octet
 			
 			this->_app = scene;
 
+			_totalSteepness = rand.get(0.0f, 1.0f);
+			GenerateGerstnerWaves(_totalSteepness);
+
 			size_t num_vertices = map_widht * map_height;
 			size_t num_indices = (map_widht - 1) * (map_height - 1) * 6;
 
 			oceanMesh->allocate(sizeof(VertexOcean) * num_vertices, sizeof(uint32_t) * num_indices);
 			oceanMesh->set_params(sizeof(VertexOcean), num_indices, num_vertices, GL_TRIANGLES, GL_UNSIGNED_INT);
-			//vertices.reserve(num_vertices);// = new VertexOcean[map_widht * map_height];
-			//indices.reserve(num_indices);
 
 			// describe the structure of my_vertex to OpenGL
 			oceanMesh->add_attribute(attribute_pos, 3, GL_FLOAT, 0);
@@ -123,7 +135,7 @@ namespace octet
 			material *color = new material(vec4(0, 0, 1, 0.5f));
 			scene_node *node = new scene_node();
 			node->translate(vec3(0, -10.0f, 0));
-			//node->rotate(90.0f, vec3(1.0, 0.0f, 0.0f));
+			node->rotate(90.0f, vec3(0.0, 1.0f, 0.0f));
 
 			_app->add_mesh_instance(new mesh_instance(node, oceanMesh, color));
 								
@@ -135,6 +147,21 @@ namespace octet
 			SimulateOcean(fixedTime);
 			//_simulationTime += deltaTime;
 			++fixedTime;
+		}
+
+		void GenerateNewWaveSet()
+		{
+			_totalSteepness = rand.get(0.0f, 1.0f);
+			for (size_t i = 0; i < NUM_WAVES; i++)
+			{				
+				waves[i].wavelength = rand.get(0.0f, 100.0f);
+				waves[i].amplitude = rand.get(0.1f, 2.0f);
+				waves[i].speed = rand.get(0.2f, 1.5f);
+				waves[i].direction = vec3(rand.get(0.0f, 1.0f), 0.0f, rand.get(0.0f, 1.0f)).normalize();
+				waves[i].frequency = 2 * PI / waves[i].wavelength;
+				waves[i].phase = waves[i].speed * waves[i].frequency;
+				waves[i].steepness = _totalSteepness / (NUM_WAVES * waves[i].frequency * waves[i].amplitude);
+			}
 		}
 
 		//GET/SET FUNTIONS
@@ -149,9 +176,31 @@ namespace octet
 		}
 
 	private:
+
+		void GenerateGerstnerWaves(float steepNess)
+		{
+			for (size_t i = 0; i < NUM_WAVES; ++i)
+			{
+				GerstnerWave* gw = new GerstnerWave(rand.get(0.0f, 100.0f), rand.get(0.1f, 2.0f), rand.get(0.2f, 1.5f), vec3(rand.get(0.0f, 1.0f), 0.0f, rand.get(0.0f, 1.0f)).normalize(), steepNess);
+				waves.push_back(*gw);
+			}
+		}
+
+		vec3 GetGerstnerContribution(float x, float z, float t)
+		{
+			vec3 contribute(0.0f,0.0f,0.0f);
+			for each (GerstnerWave gw in waves)
+			{
+				contribute += gw.GetPosition(x,z,t);
+			}
+			return contribute;
+		}
+
 		void SetupRendering()
 		{
 			// describe the structure of my_vertex to OpenGL
+			glClearColor(0, 0, 0, 1);
+			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 			oceanMesh->clear_attributes();
 
 			oceanMesh->add_attribute(attribute_pos, 3, GL_FLOAT, 0);
@@ -162,7 +211,7 @@ namespace octet
 			//oceanMesh->set_params(32, 0, 0, GL_TRIANGLES, GL_UNSIGNED_INT);
 			oceanMesh->set_mode(mode);
 		}
-
+		
 		void SimulateOcean(float t)
 		{
 
@@ -170,34 +219,6 @@ namespace octet
 			VertexOcean* vtx = (VertexOcean *)vl.u8();
 			gl_resource::wolock il(oceanMesh->get_indices());
 			uint32_t *idx = il.u32();
-
-			//// make the vertices
-			//for (size_t i = 0; i != mesh_size; ++i) {
-			//	for (size_t j = 0; j != mesh_size; ++j) {
-			//		vec3 wavePosition = gerstner_wave_position(j, i);
-			//		vtx->pos = vec3p(vec3(1.0f * j, -1.0f * i, 0.0f) + wavePosition);
-			//		vec3 normalPosition = gerstner_wave_normals(wavePosition);
-			//		vtx->normal = vec3p(wavePosition);
-			//		vtx->color = make_color(sine_waves[0].colour);
-			//		vtx++;
-			//	}
-			//}
-
-			//// make the triangles
-			//uint32_t vn = 0;
-			//for (size_t i = 0; i != mesh_size * (mesh_size - 1); ++i) {
-			//	if (i % mesh_size != mesh_size - 1){
-			//		idx[0] = i;
-			//		idx[1] = i + mesh_size + 1;
-			//		idx[2] = i + 1;
-			//		idx += 3;
-
-			//		idx[0] = i;
-			//		idx[1] = i + mesh_size;
-			//		idx[2] = i + mesh_size + 1;
-			//		idx += 3;
-			//	}
-			//}
 
 			for (unsigned int j = 0; j < map_height; ++j)
 			{
@@ -210,8 +231,8 @@ namespace octet
 
 					float x = (u * terrain_width) - half_terrain_width;
 					float z = (v * terrain_eight) - half_terrain_height;
-					//float y = 0.0f;
-					float y = prova->GetHeightPosition(x, z, t);
+					
+					//float y = prova->GetHeightPosition(x, z, t);
 
 					/*VertexOcean vo;
 					vo.norm = vec3p(0.0f, 1.0f, 0.0f);
@@ -219,11 +240,11 @@ namespace octet
 
 					vertices[idx] = vo;*/
 
-					vec3 wavePosition = vec3(0.0f, prova->GetHeightPosition(x, z, t), 0.0f);//gerstner_wave_position(j, i);
-					vtx->pos = vec3p(vec3(1.0f * j, 0.0f, -1.0f * i) + wavePosition);//vec3p(x, y, z);//
+					vec3 GerstnerPosition = GetGerstnerContribution(x, z, t);
+					vtx->pos = vec3p(vec3(x, 0.0f, z) + GerstnerPosition);//vec3p(x, y, z);//
 					//vec3 normalPosition = gerstner_wave_normals(wavePosition);
 					vtx->norm = vec3p(0.0f, 1.0f, 0.0f);//vec3p(wavePosition);
-					vtx->color = make_color(vec3(0.0f,0.3f,1.0f));
+					vtx->color = make_color(vec3(1.0f,0.3f,1.0f));
 					vtx++;
 				}
 

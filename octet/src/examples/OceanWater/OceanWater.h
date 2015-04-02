@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////
 //
-// 
+// Andrea Castegnaro
 //
 // 
 //
@@ -33,12 +33,12 @@ namespace octet {
 			exit(1);
 		}
 		else if (is_key_going_down('1')){
-			om->SetMode(0);
-		}
-		else if (is_key_going_down('2')){
 			om->SetMode(1);
 		}
-		else if (is_key_going_down('3')){
+		else if (is_key_going_down('2')){
+			om->SetMode(5);
+		}
+		/*else if (is_key_going_down('3')){
 			om->SetMode(2);
 		}
 		else if (is_key_going_down('4')){
@@ -46,7 +46,7 @@ namespace octet {
 		}
 		else if (is_key_going_down('5')){
 			om->SetMode(5);
-		}
+		}*/
 		else if (is_key_down('W')){
 			camera->get_node()->translate(vec3(0, 0, -5));
 		}
@@ -58,6 +58,10 @@ namespace octet {
 		}
 		else if (is_key_down('D')){
 			camera->get_node()->translate(vec3(5, 0, 0));
+		}
+		//new generation
+		else if (is_key_down('G')){
+			om->GenerateNewWaveSet();
 		}
 	}
 
@@ -76,46 +80,32 @@ namespace octet {
 
 		om = new OceanMesh();
 		om->Init(app_scene);
-
-		/*mat4t mat;
-
-		mat.loadIdentity();
-		mat.translate(0, -0.5f, 0);
-		material *color = new material(vec4(0, 0, 1, 0.5f));
-		scene_node *node = new scene_node();
-		
-		app_scene->add_child(node);
-		app_scene->add_mesh_instance(new mesh_instance(node, om->getMeshInstance(), color));
-		*/
 	}
 
     /// this is called to draw the world
     void draw_world(int x, int y, int w, int h) {
+		
+		keyboard();
 
+		int vx = 0, vy = 0;
+		get_viewport_size(vx, vy);
+		app_scene->begin_render(vx, vy);
 
-      int vx = 0, vy = 0;
-      get_viewport_size(vx, vy);
-      app_scene->begin_render(vx, vy);
+		scene_node *camera_node = camera->get_node();
+		mat4t &camera_to_world = camera_node->access_nodeToParent();
+		mouse_look_helper.update(camera_to_world);
 
-	  scene_node *camera_node = camera->get_node();
-	  mat4t &camera_to_world = camera_node->access_nodeToParent();
-	  mouse_look_helper.update(camera_to_world);
+		std::chrono::time_point<std::chrono::system_clock> now = std::chrono::system_clock::now();
+		float delta_time = (now - start).count();
 
-	  std::chrono::time_point<std::chrono::system_clock> now = std::chrono::system_clock::now();
-	  float delta_time = (now - start).count();
+		om->FixedUpdate();
+		
+		// update matrices. assume 30 fps.
+		app_scene->update(1.0f/30);
 
-	  om->FixedUpdate();
-	  keyboard();
-      // update matrices. assume 30 fps.
-      app_scene->update(1.0f/30);
+		// draw the scene
+		app_scene->render((float)vx / vy);
 
-      // draw the scene
-      app_scene->render((float)vx / vy);
-
-      // tumble the box  (there is only one mesh instance)
-      scene_node *node = app_scene->get_mesh_instance(0)->get_node();
-      //node->rotate(1, vec3(1, 0, 0));
-      //node->rotate(1, vec3(0, 1, 0));
-    }
-  };
+		}
+	};
 }
