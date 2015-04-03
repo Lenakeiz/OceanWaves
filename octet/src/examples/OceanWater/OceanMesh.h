@@ -141,7 +141,7 @@ namespace octet
 			oceanMesh->add_attribute(attribute_normal, 3, GL_FLOAT, 12);
 			oceanMesh->add_attribute(attribute_color, 4, GL_UNSIGNED_BYTE, 24, GL_TRUE);
 
-			param_shader *s = new param_shader("shaders/default.vs", "shaders/ocean_shader.fs");
+			param_shader *s = new param_shader("shaders/default.vs", "shaders/base_shader.fs");
 			material *wm = new material(vec4(0.0f, 0.0f, 1.0f, 1), s);
 			material *color = new material(vec4(0, 0, 1, 0.5f));
 			scene_node *node = new scene_node();

@@ -77,7 +77,7 @@ namespace octet {
 		app_scene->add_child(n);
 		n->translate(vec3(0.0f, 50, -50));
 		n->rotate(-45, vec3(1, 0, 0));
-		n->rotate(-180, vec3(0, 1, 0));
+		//n->rotate(-180, vec3(0, 1, 0));
 		l->set_color(vec4(1, 1, 1, 1));
 		l->set_kind(atom_directional);
 		li->set_node(n);
