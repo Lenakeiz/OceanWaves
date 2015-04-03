@@ -66,7 +66,7 @@ namespace octet
 		struct VertexOcean
 		{
 			vec3p pos;
-			vec3p norm;
+			vec3p normal;
 			uint32_t color;
 		};
 
@@ -141,14 +141,14 @@ namespace octet
 			oceanMesh->add_attribute(attribute_normal, 3, GL_FLOAT, 12);
 			oceanMesh->add_attribute(attribute_color, 4, GL_UNSIGNED_BYTE, 24, GL_TRUE);
 
-			param_shader *s = new param_shader("shaders/default.vs", "shaders/simple_color.fs");
-			material *wm = new material(vec4(1.0f, 0.0f, 0.0f, 1), s);
+			param_shader *s = new param_shader("shaders/default.vs", "shaders/ocean_shader.fs");
+			material *wm = new material(vec4(0.0f, 0.0f, 1.0f, 1), s);
 			material *color = new material(vec4(0, 0, 1, 0.5f));
 			scene_node *node = new scene_node();
 			node->translate(vec3(0, -10.0f, 0));
 			node->rotate(90.0f, vec3(0.0, 1.0f, 0.0f));
 
-			_app->add_mesh_instance(new mesh_instance(node, oceanMesh, color));
+			_app->add_mesh_instance(new mesh_instance(node, oceanMesh, wm));
 								
 		}
 
@@ -241,14 +241,14 @@ namespace octet
 			gl_resource::wolock il(oceanMesh->get_indices());
 			uint32_t *idx = il.u32();
 
-			for (unsigned int j = 0; j < map_height; ++j)
+			for (unsigned int j = 0; j != map_height; ++j)
 			{
-				for (unsigned int i = 0; i < map_widht; ++i)
+				for (unsigned int i = 0; i != map_widht; ++i)
 				{
 					//uint32_t idx = i + (j * map_widht);
 
-					float u = i / static_cast<float>(map_widht - 1);
-					float v = j / static_cast<float>(map_height - 1);
+					float u = i / static_cast<float>(map_widht);
+					float v = j / static_cast<float>(map_height);
 
 					float x = (u * terrain_width) - half_terrain_width;
 					float z = (v * terrain_eight) - half_terrain_height;
@@ -264,7 +264,7 @@ namespace octet
 					vec3 finalPosition = vec3(x, 0.0f, z) + GetGerstnerContribution(x, z, t);
 					vtx->pos = vec3p(finalPosition);//vec3p(x, y, z);//
 					//vec3 normalPosition = gerstner_wave_normals(wavePosition);
-					vtx->norm = GetGerstnerNormal(x, z, t, finalPosition);
+					vtx->normal = GetGerstnerNormal(x, z, t, finalPosition);
 					vtx->color = make_color(vec3(0.0f,0.5f,1.0f));
 					vtx++;
 				}
