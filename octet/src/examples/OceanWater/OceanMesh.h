@@ -4,11 +4,7 @@
 #define MULTIPLIER 1
 #define PI 3.14159265358979323846264338327950288
 
-<<<<<<< HEAD
-#define NUM_WAVES 4
-=======
 #define NUM_WAVES 3
->>>>>>> 3a75384a2323b944c30740ef917b4e639f16fe4b
 
 namespace octet
 {
@@ -32,7 +28,7 @@ namespace octet
 			GerstnerWave() = default;
 			GerstnerWave(float w, float a, float s, vec3 d, float totSteep) : wavelength(w), amplitude(a), speed(s), direction(d)
 			{
-				frequency = 2 * PI / wavelength;
+				frequency = 2 * (float)PI / wavelength;
 				phase = speed * frequency;
 				steepness = totSteep / (NUM_WAVES * frequency * amplitude);
 			}
@@ -80,13 +76,9 @@ namespace octet
 		//other parameters
 		float _totalSteepness;
 		//Grid dimension
-<<<<<<< HEAD
-		uint32_t _m = 100;
-		uint32_t _n = 100;
-=======
+
 		uint32_t _m = 80;
 		uint32_t _n = 80;
->>>>>>> 3a75384a2323b944c30740ef917b4e639f16fe4b
 		uint32_t map_widht;
 		uint32_t map_height;
 		float terrain_width;

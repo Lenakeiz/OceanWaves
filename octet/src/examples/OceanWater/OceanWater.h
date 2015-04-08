@@ -64,7 +64,6 @@ namespace octet {
 			om->GenerateNewWaveSet();
 		}
 	}
-<<<<<<< HEAD
 
 	void mouse(){
 		if (is_key_down(key::key_shift))
@@ -72,11 +71,8 @@ namespace octet {
 			scene_node *camera_node = camera->get_node();
 			mat4t &camera_to_world = camera_node->access_nodeToParent();
 			mouse_look_helper.update(camera_to_world);
-		}
-		
+		}		
 	}
-=======
->>>>>>> 3a75384a2323b944c30740ef917b4e639f16fe4b
 	
     /// this is called once OpenGL is initialized
 	void app_init() {
@@ -113,24 +109,15 @@ namespace octet {
     void draw_world(int x, int y, int w, int h) {
 		
 		keyboard();
-<<<<<<< HEAD
 		mouse();
-=======
 
->>>>>>> 3a75384a2323b944c30740ef917b4e639f16fe4b
 		int vx = 0, vy = 0;
 		get_viewport_size(vx, vy);
 		app_scene->begin_render(vx, vy);
 
-<<<<<<< HEAD
-=======
 		scene_node *camera_node = camera->get_node();
 		mat4t &camera_to_world = camera_node->access_nodeToParent();
 		mouse_look_helper.update(camera_to_world);
-
->>>>>>> 3a75384a2323b944c30740ef917b4e639f16fe4b
-		std::chrono::time_point<std::chrono::system_clock> now = std::chrono::system_clock::now();
-		float delta_time = (now - start).count();
 
 		om->FixedUpdate();
 		
