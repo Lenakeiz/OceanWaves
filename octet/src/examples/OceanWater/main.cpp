@@ -6,7 +6,7 @@
 //
 //
 
-#define OCTET_BULLET 1
+#define OCTET_BULLET 0
 
 #include "../../octet.h"
 
