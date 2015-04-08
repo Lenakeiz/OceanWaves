@@ -427,10 +427,13 @@
     <ClInclude Include="..\..\containers\string.h">
       <Filter>containers</Filter>
     </ClInclude>
+<<<<<<< HEAD
     <ClInclude Include="OceanMesh.h" />
     <ClInclude Include="OceanWater.h" />
     <ClInclude Include="OceanTerrainMesh.h" />
     <ClInclude Include="OceanWaterGLSL.h" />
+=======
+>>>>>>> 3a75384a2323b944c30740ef917b4e639f16fe4b
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\resources\mesh_builder.inl">
