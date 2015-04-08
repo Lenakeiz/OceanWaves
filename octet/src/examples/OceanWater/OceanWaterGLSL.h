@@ -10,9 +10,46 @@ namespace octet
 		mouse_look mouse_look_helper;
 		ref<camera_instance> camera;
 
-		unsigned long long update_time = 0;
+		float update_time = 0;
 
 		OceanTerrainMesh::water_geometry_source water_source;
+		OceanTerrainMesh::GerstnerWave* gw;
+		ref<material> water_material;
+
+		//uniforms sections: vertex shader
+		ref<param_uniform> uniform_time;
+		ref<param_uniform> uniform_wavelength;
+		ref<param_uniform> uniform_amplitude;
+		ref<param_uniform> uniform_speed;
+		ref<param_uniform> uniform_dir_x;
+		ref<param_uniform> uniform_dir_z;
+
+		void initialize_waves()
+		{
+			gw = new OceanTerrainMesh::GerstnerWave(50.0f, 2.0f, 1.0f, vec3(1.0, 0.0f, 1.0f).normalize(), 0.0f);
+		}
+
+		void register_uniforms()
+		{
+			atom_t time_atom = app_utils::get_atom("time");
+			uniform_time = water_material->add_uniform(&update_time, time_atom, GL_FLOAT, 1, param::stage_vertex);
+
+			atom_t a_wavelength = app_utils::get_atom("wavelength");
+			uniform_wavelength = water_material->add_uniform(&(gw->wavelength), a_wavelength, GL_FLOAT, 1, param::stage_vertex);
+
+			atom_t a_amplitude = app_utils::get_atom("amplitude");
+			uniform_amplitude = water_material->add_uniform(&(gw->amplitude), a_amplitude, GL_FLOAT, 1, param::stage_vertex);
+
+			atom_t a_speed = app_utils::get_atom("speed");
+			uniform_speed = water_material->add_uniform(&(gw->speed), a_speed, GL_FLOAT, 1, param::stage_vertex);
+
+			atom_t a_dir_x = app_utils::get_atom("dir_x");
+			uniform_dir_x = water_material->add_uniform(&(gw->direction.x()), a_dir_x, GL_FLOAT, 1, param::stage_vertex);
+
+			atom_t a_dir_z = app_utils::get_atom("dir_z");
+			uniform_dir_z = water_material->add_uniform(&(gw->direction.z()), a_dir_z, GL_FLOAT, 1, param::stage_vertex);
+
+		}
 
 		void keyboard(){
 			if (is_key_down(key::key_esc))
@@ -46,11 +83,27 @@ namespace octet
 			else if (is_key_down('D')){
 				camera->get_node()->translate(vec3(5, 0, 0));
 			}
+			else if (is_key_down('E')){
+				camera->get_node()->translate(vec3(0, 5, 0));
+			}
+			else if (is_key_down('Q')){
+				camera->get_node()->translate(vec3(0, 5, 0));
+			}
 			//new generation
 			/*else if (is_key_down('G')){
 				om->GenerateNewWaveSet();
 			}*/
 		}
+
+		void mouse(){
+			if (is_key_down(key::key_shift))
+			{
+				scene_node *camera_node = camera->get_node();
+				mat4t &camera_to_world = camera_node->access_nodeToParent();
+				mouse_look_helper.update(camera_to_world);
+			}
+		}
+
 	public:
 		/// this is called when we construct the class before everything is initialised.
 		OceanWaterGLSL(int argc, char **argv) : app(argc, argv) {
@@ -69,28 +122,21 @@ namespace octet
 			mat4t mat;
 
 			mat.loadIdentity();
-			mat.translate(0, -0.5f, 0);
+			//mat.translate(0, -0.5f, 0);
 
-			param_shader* water_shader = new param_shader("shaders/default.vs", "shaders/default_solid.fs");
-			material* water_material = new material(vec4(0.0f, 0.0f, 1.0f, 1.0f), water_shader);
+			initialize_waves();
 
-			float time_value = 0;
-
+			param_shader* water_shader = new param_shader("shaders/basewater.vs", "shaders/default_solid.fs");
+			water_material = new material(vec4(0.0f, 0.0f, 1.0f, 1.0f), water_shader);
+			
+			register_uniforms();
+			
 			app_scene->add_shape(
 				mat,
-				new mesh_terrain(vec3(100.0f, 0.0f, 100.0f), ivec3(400, 1.0f, 400), water_source),
+				new mesh_terrain(vec3(100.0f, 0.0f, 100.0f), ivec3(400, 1, 400), water_source),
 				water_material,
 				false, 0
 				);
-		}
-
-		void mouse(){
-			if (is_key_down(key::key_shift))
-			{
-				scene_node *camera_node = camera->get_node();
-				mat4t &camera_to_world = camera_node->access_nodeToParent();
-				mouse_look_helper.update(camera_to_world);
-			}
 		}
 
 		/// this is called to draw the world
@@ -104,11 +150,14 @@ namespace octet
 			keyboard();
 			mouse();
 
+			water_material->set_uniform(uniform_time, &update_time, sizeof(update_time));
+
 			// update matrices. assume 30 fps.
 			app_scene->update(1.0f / 30);
 
 			// draw the scene
-			app_scene->render((float)vx / vy);
+			app_scene->render((float)vx / vy); 
+			update_time += 0.2f;
 		}
 	};
 

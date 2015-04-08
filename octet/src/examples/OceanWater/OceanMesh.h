@@ -4,7 +4,7 @@
 #define MULTIPLIER 1
 #define PI 3.14159265358979323846264338327950288
 
-#define NUM_WAVES 3
+#define NUM_WAVES 1
 
 namespace octet
 {
@@ -12,7 +12,7 @@ namespace octet
 	class OceanMesh 
 	{
 
-	private:
+	public:
 
 		struct GerstnerWave
 		{
@@ -61,7 +61,7 @@ namespace octet
 			}
 
 		};
-
+	private:
 		//this struct is used to instruct the OpenGl and the vertex sader
 		struct VertexOcean
 		{
