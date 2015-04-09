@@ -11,44 +11,105 @@ namespace octet
 		ref<camera_instance> camera;
 
 		float update_time = 0;
-
+		
+		//mesh terrain
 		OceanTerrainMesh::water_geometry_source water_source;
-		OceanTerrainMesh::GerstnerWave* gw;
+		int n_waves;
+		dynarray<OceanTerrainMesh::GerstnerWave> waves;
 		ref<material> water_material;
+		random rand;
 
+		float _totalSteepness = 0.0f;
+
+		//mapped for uniform
+		float wavelength[8];
+		float amplitude[8];
+		float speed[8];
+		float dir_x[8];
+		float dir_z[8];
+		float steepness[8];
+		
 		//uniforms sections: vertex shader
 		ref<param_uniform> uniform_time;
+		ref<param_uniform> uniform_n_waves;
+
+		//uniforms sections: uniform
 		ref<param_uniform> uniform_wavelength;
 		ref<param_uniform> uniform_amplitude;
 		ref<param_uniform> uniform_speed;
 		ref<param_uniform> uniform_dir_x;
 		ref<param_uniform> uniform_dir_z;
+		ref<param_uniform> uniform_steepness;
 
 		void initialize_waves()
 		{
-			gw = new OceanTerrainMesh::GerstnerWave(50.0f, 2.0f, 1.0f, vec3(1.0, 0.0f, 1.0f).normalize(), 0.0f);
+			_totalSteepness = rand.get(0.0f, 1.0f);
+			n_waves = NUM_WAVES;
+			for (size_t i = 0; i < n_waves; ++i)
+			{
+				OceanTerrainMesh::GerstnerWave* gw = new OceanTerrainMesh::GerstnerWave(rand.get(0.0f, 100.0f), rand.get(0.1f, 2.0f), rand.get(0.2f, 1.5f), vec3(rand.get(0.0f, 1.0f), 0.0f, rand.get(0.0f, 1.0f)).normalize(), _totalSteepness);
+				waves.push_back(*gw);
+			}
 		}
-
+		
+		void update_uniform_variables()
+		{
+			for (size_t i = 0; i < 8; ++i)
+			{
+				if (i < n_waves)
+				{
+					wavelength[i]	= waves[i].wavelength;
+					amplitude[i]	= waves[i].amplitude;
+					speed[i]		= waves[i].speed;
+					dir_x[i]		= waves[i].direction.x();
+					dir_z[i]		= waves[i].direction.z();
+					steepness[i]	= waves[i].steepness;
+				}
+				else
+				{	
+					wavelength[i] = 0.0f;
+					amplitude[i] = 0.0f;
+					speed[i] = 0.0f;
+					dir_x[i] = 0.0f;
+					dir_z[i] = 0.0f;
+					steepness[i] = 0.0f;
+				}				
+			}
+		}
+		
 		void register_uniforms()
 		{
+			//Fixed Time
 			atom_t time_atom = app_utils::get_atom("time");
 			uniform_time = water_material->add_uniform(&update_time, time_atom, GL_FLOAT, 1, param::stage_vertex);
+			//Number of Waves
+			atom_t atom_n_waves = app_utils::get_atom("n_waves");
+			uniform_n_waves = water_material->add_uniform(nullptr, atom_n_waves, GL_INT, 1, param::stage_vertex);
+			water_material->set_uniform(uniform_n_waves, &n_waves, sizeof(int));
 
+			//Registering waves parameters
 			atom_t a_wavelength = app_utils::get_atom("wavelength");
-			uniform_wavelength = water_material->add_uniform(&(gw->wavelength), a_wavelength, GL_FLOAT, 1, param::stage_vertex);
-
+			uniform_wavelength = water_material->add_uniform(nullptr, a_wavelength, GL_FLOAT, 8, param::stage_vertex);
 			atom_t a_amplitude = app_utils::get_atom("amplitude");
-			uniform_amplitude = water_material->add_uniform(&(gw->amplitude), a_amplitude, GL_FLOAT, 1, param::stage_vertex);
-
+			uniform_amplitude = water_material->add_uniform(nullptr, a_amplitude, GL_FLOAT, 8, param::stage_vertex);
 			atom_t a_speed = app_utils::get_atom("speed");
-			uniform_speed = water_material->add_uniform(&(gw->speed), a_speed, GL_FLOAT, 1, param::stage_vertex);
-
+			uniform_speed = water_material->add_uniform(nullptr, a_speed, GL_FLOAT, 8, param::stage_vertex);
 			atom_t a_dir_x = app_utils::get_atom("dir_x");
-			uniform_dir_x = water_material->add_uniform(&(gw->direction.x()), a_dir_x, GL_FLOAT, 1, param::stage_vertex);
-
+			uniform_dir_x = water_material->add_uniform(nullptr, a_dir_x, GL_FLOAT, 8, param::stage_vertex);
 			atom_t a_dir_z = app_utils::get_atom("dir_z");
-			uniform_dir_z = water_material->add_uniform(&(gw->direction.z()), a_dir_z, GL_FLOAT, 1, param::stage_vertex);
-
+			uniform_dir_z = water_material->add_uniform(nullptr, a_dir_z, GL_FLOAT, 8, param::stage_vertex);
+			atom_t a_steepness = app_utils::get_atom("steepness");
+			uniform_steepness = water_material->add_uniform(nullptr, a_steepness, GL_FLOAT, 8, param::stage_vertex);
+		}
+		
+		void update_uniforms()
+		{
+			water_material->set_uniform(uniform_wavelength, wavelength, 8 * sizeof(float));
+			water_material->set_uniform(uniform_amplitude, amplitude, 8 * sizeof(float));
+			water_material->set_uniform(uniform_speed, speed, 8 * sizeof(float));
+			water_material->set_uniform(uniform_dir_x, dir_x, 8 * sizeof(float));
+			water_material->set_uniform(uniform_dir_z, dir_z, 8 * sizeof(float));
+			water_material->set_uniform(uniform_steepness, steepness, 8 * sizeof(float));
 		}
 
 		void keyboard(){
@@ -96,7 +157,7 @@ namespace octet
 		}
 
 		void mouse(){
-			if (is_key_down(key::key_shift))
+			//if (is_key_down(key::key_shift))
 			{
 				scene_node *camera_node = camera->get_node();
 				mat4t &camera_to_world = camera_node->access_nodeToParent();
@@ -125,12 +186,15 @@ namespace octet
 			//mat.translate(0, -0.5f, 0);
 
 			initialize_waves();
+			update_uniform_variables();
+			
 
 			param_shader* water_shader = new param_shader("shaders/basewater.vs", "shaders/default_solid.fs");
-			water_material = new material(vec4(0.0f, 0.0f, 1.0f, 1.0f), water_shader);
+			water_material = new material(vec4(0.0f, 0.25f, 0.75f, 0.25f), water_shader);
 			
 			register_uniforms();
-			
+			update_uniforms();
+
 			app_scene->add_shape(
 				mat,
 				new mesh_terrain(vec3(100.0f, 0.0f, 100.0f), ivec3(400, 1, 400), water_source),
@@ -150,15 +214,17 @@ namespace octet
 			keyboard();
 			mouse();
 
+			glClearColor(0, 0, 0, 1);
+			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
 			water_material->set_uniform(uniform_time, &update_time, sizeof(update_time));
 
 			// update matrices. assume 30 fps.
 			app_scene->update(1.0f / 30);
-
+			
 			// draw the scene
 			app_scene->render((float)vx / vy); 
-			update_time += 0.2f;
-		}
+			update_time += 1.0f;		}
 	};
 
 }

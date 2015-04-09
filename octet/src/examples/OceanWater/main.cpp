@@ -10,8 +10,9 @@
 
 #include "../../octet.h"
 
-#include "OceanWater.h"
 #include "OceanWaterGLSL.h"
+#include "OceanWater.h"
+
 
 int main(int argc, char **argv) {
   // set up the platform.

@@ -1,4 +1,7 @@
-
+#define NUM_WAVES 3
+#define SEG_WIDTH 1.0f
+#define MULTIPLIER 1
+#define PI 3.14159265358979323846264338327950288
 
 namespace octet
 {
