@@ -45,14 +45,14 @@ vec3 calcutateGerstnerPosition()
 	{
 		frequency = 2 * PI / wavelength[i];
 	    phase = speed[i] * frequency;
-		//vec2 dir = normalize(vec2(dir_x[i],dir_z[i]));
-		//vec2 position = vec2(pos.x,pos.x)
-		//displacement = dot(dir,pos.xyz);
-		displacement = dot(vec3(dir_x[i],0.0,dir_z[i]),pos.xyz);
+		vec2 dir = normalize(vec2(dir_x[i],dir_z[i]));
+		vec2 position = vec2(pos.x,pos.z);
+		displacement = dot(dir,position);
+		//displacement = dot(vec3(dir_x[i],0.0,dir_z[i]),pos.xyz);
 		contribute += vec3(
-							steepness[i] * amplitude[i] * dir_x[i] * cos(displacement * frequency + phase * time),
-							amplitude[i] * sin(displacement * frequency + phase * time),
-							steepness[i] * amplitude[i] * dir_z[i] * cos(displacement * frequency + phase * time)
+							 steepness[i] * amplitude[i] * dir_x[i] * cos(displacement * frequency + phase * time),
+							 amplitude[i] * sin(displacement * frequency + phase * time),
+							 steepness[i] * amplitude[i] * dir_z[i] * cos(displacement * frequency + phase * time)
 							);
 	}
 	return contribute;

@@ -7,6 +7,7 @@
 //
 
 #define OCTET_BULLET 0
+#define GLSLACTIVE 1
 
 #include "../../octet.h"
 
@@ -17,10 +18,20 @@
 int main(int argc, char **argv) {
   // set up the platform.
   octet::app::init_all(argc, argv);
-
-  // our application.
   octet::OceanWaterGLSL app(argc, argv);
-  //octet::OceanWater app(argc, argv);
+  // our application.
+//#ifdef GLSLACTIVE
+//
+//  
+//
+//#else 
+//
+//  octet::OceanWater app(argc, argv);
+//  
+//#endif// DEBUG
+
+  //
+ 
   app.init();
 
   // open windows

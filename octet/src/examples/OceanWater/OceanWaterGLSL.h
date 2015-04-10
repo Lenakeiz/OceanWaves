@@ -14,6 +14,7 @@ namespace octet
 		
 		//mesh terrain
 		ref<mesh> terrainmesh;
+		float dimension = 1000.0f;
 		OceanTerrainMesh::water_geometry_source water_source;
 		int n_waves;
 		dynarray<OceanTerrainMesh::GerstnerWave> waves;
@@ -52,14 +53,6 @@ namespace octet
 			{
 				OceanTerrainMesh::GerstnerWave* gw = new OceanTerrainMesh::GerstnerWave(rand.get(0.0f, 100.0f), rand.get(0.1f, 2.0f), rand.get(0.2f, 1.5f), vec3(rand.get(0.0f, 1.0f), 0.0f, rand.get(0.0f, 1.0f)).normalize(), _totalSteepness);
 				waves.push_back(*gw);
-			}
-
-			for (int i = 0; i != 8; ++i){
-				waves[i].amplitude = (1.0f + i / 8.0f)*0.25;
-				waves[i].speed = 0.5f + i / 40.0f;
-				waves[i].wavelength = 6.5f + i / 5.0f;
-				waves[i].direction = vec3(i / 4.0f, 0.0, 1 - i / 8.0f).normalize();// dir_x[i] = i / 4.0f;
-				waves[i].steepness = 0.0f;
 			}
 
 		}
@@ -127,14 +120,15 @@ namespace octet
 		void GenerateNewWaveSet()
 		{
 			_totalSteepness = rand.get(0.0f, 1.0f);
+			//float terrainsize = terrainmesh->get_aabb().get_max().length();
 			for (size_t i = 0; i < n_waves; i++)
 			{
-				waves[i].wavelength = rand.get(0.0f, 100.0f);
-				waves[i].amplitude = rand.get(0.1f, 2.0f);
-				waves[i].speed = rand.get(0.2f, 1.5f);
-				waves[i].direction = vec3(rand.get(0.0f, 1.0f), 0.0f, rand.get(0.0f, 1.0f)).normalize();
-				//waves[i].frequency = 2 * PI / waves[i].wavelength;
-				//waves[i].phase = waves[i].speed * waves[i].frequency;
+				waves[i].wavelength = rand.get(0.01f, 0.75f * dimension);
+				waves[i].amplitude = rand.get(0.1f, 4.0f);
+				waves[i].speed = rand.get(0.1f, 1.0f);
+				waves[i].direction = vec3(rand.get(-1.0f, 1.0f), 0.0f, rand.get(-1.0f, 1.0f)).normalize();
+				waves[i].frequency = 2 * PI / waves[i].wavelength;
+				waves[i].phase = waves[i].speed * waves[i].frequency;
 				waves[i].steepness = _totalSteepness / (n_waves * waves[i].frequency * waves[i].amplitude);
 			}
 			update_uniform_variables();
@@ -190,30 +184,42 @@ namespace octet
 
 		void add_light_instances()
 		{
-			//light *l = new light();
+			scene_node *node = new scene_node();
+			app_scene->add_child(node);
+			light *_light = new light();
+			light_instance *li = new light_instance();
+			node->translate(vec3(50, 50, 50));
+			node->rotate(-45, vec3(1, 0, 0));
+			node->rotate(45, vec3(0, 1, 0));
+			_light->set_color(vec4(1, 1, 1, 1));
+			_light->set_kind(atom_directional);
+			li->set_node(node);
+			li->set_light(_light);
+			app_scene->add_light_instance(li);
+
+			//node = new scene_node();
+			//app_scene->add_child(node);
+			//_light = new light();
 			//li = new light_instance();
-			//scene_node *n = new scene_node();
-			//app_scene->add_child(n);
-			//n->translate(vec3(0.0f, 50, -50));
-			//n->rotate(-45, vec3(1, 0, 0));
-			////n->rotate(-180, vec3(0, 1, 0));
-			//l->set_color(vec4(1, 1, 1, 1));
-			//l->set_kind(atom_directional);
-			//li->set_node(n);
-			//li->set_light(l);
+			//node->translate(vec3(-100, 100, -100));
+			//node->rotate(45, vec3(1, 0, 0));
+			//node->rotate(-45, vec3(0, 1, 0));
+			//_light->set_color(vec4(1, 1, 1, 1));
+			//_light->set_kind(atom_directional);
+			//li->set_node(node);
+			//li->set_light(_light);
 			//app_scene->add_light_instance(li);
 
-			light *l = new light();
-			light_instance *li = new light_instance();
-			scene_node *n = new scene_node();
-			app_scene->add_child(n);
-			n->translate(vec3(0.0f, 50.0f, 0.0f));
-			n->rotate(-180, vec3(1, 0, 0));
-			//n->rotate(-180, vec3(0, 1, 0));
-			l->set_color(vec4(1, 1, 1, 1));
-			l->set_kind(atom_diffuse_light);
-			li->set_node(n);
-			li->set_light(l);
+			//DIFFUSE LIGHT
+			node = new scene_node();
+			app_scene->add_child(node);
+			_light = new light();
+			node->rotate(-90, vec3(1, 0, 0));
+			node->translate(vec3(0.0f, 0.0f, 0.0f));
+			_light->set_color(vec4(1, 1, 1, 1));
+			_light->set_kind(atom_diffuse_light);
+			li->set_node(node);
+			li->set_light(_light);
 			app_scene->add_light_instance(li);
 		}
 
@@ -230,23 +236,30 @@ namespace octet
 			add_light_instances();
 			app_scene->create_default_camera_and_lights();
 			camera = app_scene->get_camera_instance(0);
-			camera->get_node()->translate(vec3(10, 10, 0));
+			//camera->get_node()->access_nodeToParent().rotate(210,0, 1, 0);
+			camera->get_node()->translate(vec3(-300, 200, -200));
+			mat4t& cameraToWorld = camera->get_node()->access_nodeToParent();
+			cameraToWorld.x() = vec4(1, 0, 0, 0);
+			cameraToWorld.y() = vec4(0, 1, 0, 0);
+			cameraToWorld.z() = vec4(0, 0, 1, 0);
+			cameraToWorld.rotateY(20.0f);
+			cameraToWorld.rotateX(30.0f);
 			camera->set_far_plane(10000);		
 
 			mat4t mat;
 			mat.loadIdentity();
-			mat.translate(0, 40, 0);
+			//mat.translate(50, 0, 50);
 
 			initialize_waves();
 			update_uniform_variables();		
 
 			param_shader* water_shader = new param_shader("shaders/basewater.vs", "shaders/base_shader.fs");
-			water_material = new material(vec4(0.2f, 0.5f, 1.0f, 1.0f), water_shader);
+			water_material = new material(vec4(0.1f, 0.2f, 1.0f, 1.0f), water_shader);
 			
 			register_uniforms();
 			update_uniforms();
 
-			terrainmesh = new mesh_terrain(vec3(100.0f, 0.0f, 100.0f), ivec3(400, 1, 400), water_source);
+			terrainmesh = new mesh_terrain(vec3(dimension, 0.0f, dimension), ivec3(800, 1, 800), water_source);
 
 			app_scene->add_shape(
 				mat,
@@ -255,7 +268,10 @@ namespace octet
 				false, 0
 				);
 
-			app_scene->add_mesh_instance(new mesh_instance(new scene_node, new mesh_sphere(vec3(0, 0, 0), 500), new material(new image("assets/skydome/skydome1.png"))));
+			scene_node* skynode = new scene_node();
+			skynode->rotate(180, vec3(0.0f, 1.0f, 0.0f));
+			skynode->rotate(20, vec3(1.0f, 0.0f, 0.0f));
+			app_scene->add_mesh_instance(new mesh_instance(skynode, new mesh_sphere(vec3(0, 0, 0), 4000), new material(new image("assets/skydome/skybox2.jpg"))));
 
 		}
 
