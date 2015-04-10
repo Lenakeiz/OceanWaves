@@ -13,6 +13,7 @@ namespace octet
 		float update_time = 0;
 		
 		//mesh terrain
+		ref<mesh> terrainmesh;
 		OceanTerrainMesh::water_geometry_source water_source;
 		int n_waves;
 		dynarray<OceanTerrainMesh::GerstnerWave> waves;
@@ -112,26 +113,37 @@ namespace octet
 			water_material->set_uniform(uniform_steepness, steepness, 8 * sizeof(float));
 		}
 
+		void GenerateNewWaveSet()
+		{
+			_totalSteepness = rand.get(0.0f, 1.0f);
+			for (size_t i = 0; i < n_waves; i++)
+			{
+				waves[i].wavelength = rand.get(0.0f, 100.0f);
+				waves[i].amplitude = rand.get(0.1f, 2.0f);
+				waves[i].speed = rand.get(0.2f, 1.5f);
+				waves[i].direction = vec3(rand.get(0.0f, 1.0f), 0.0f, rand.get(0.0f, 1.0f)).normalize();
+				//waves[i].frequency = 2 * PI / waves[i].wavelength;
+				//waves[i].phase = waves[i].speed * waves[i].frequency;
+				waves[i].steepness = _totalSteepness / (n_waves * waves[i].frequency * waves[i].amplitude);
+			}
+			update_uniform_variables();
+			update_uniforms();
+		}
+
 		void keyboard(){
 			if (is_key_down(key::key_esc))
 			{
 				exit(1);
 			}
-			/*else if (is_key_going_down('1')){
-				om->SetMode(1);
+			else if (is_key_going_down('1')){
+				terrainmesh->set_mode(1);
 			}
 			else if (is_key_going_down('2')){
-				om->SetMode(5);
-			}*/
-			/*else if (is_key_going_down('3')){
-			om->SetMode(2);
+				terrainmesh->set_mode(4);
 			}
-			else if (is_key_going_down('4')){
-			om->SetMode(3);
+			else if (is_key_going_down('3')){
+				terrainmesh->set_mode(0);
 			}
-			else if (is_key_going_down('5')){
-			om->SetMode(5);
-			}*/
 			else if (is_key_down('W')){
 				camera->get_node()->translate(vec3(0, 0, -5));
 			}
@@ -148,12 +160,12 @@ namespace octet
 				camera->get_node()->translate(vec3(0, 5, 0));
 			}
 			else if (is_key_down('Q')){
-				camera->get_node()->translate(vec3(0, 5, 0));
+				camera->get_node()->translate(vec3(0, -5, 0));
 			}
 			//new generation
-			/*else if (is_key_down('G')){
-				om->GenerateNewWaveSet();
-			}*/
+			else if (is_key_down('G')){
+				GenerateNewWaveSet();
+			}
 		}
 
 		void mouse(){
@@ -163,6 +175,46 @@ namespace octet
 				mat4t &camera_to_world = camera_node->access_nodeToParent();
 				mouse_look_helper.update(camera_to_world);
 			}
+		}
+
+		void add_light_instances()
+		{
+			light *_light = new light();
+			light_instance *li = new light_instance();
+			scene_node *node = new scene_node();
+			app_scene->add_child(node);
+			node->translate(vec3(100, 100, 100));
+			node->rotate(45, vec3(1, 0, 0));
+			node->rotate(45, vec3(0, 1, 0));
+			_light->set_color(vec4(1, 1, 1, 1));
+			_light->set_kind(atom_directional);
+			li->set_node(node);
+			li->set_light(_light);
+			app_scene->add_light_instance(li);
+			node = new scene_node();
+			app_scene->add_child(node);
+			_light = new light();
+			li = new light_instance();
+			node->translate(vec3(-100, 100, -100));
+			node->rotate(45, vec3(1, 0, 0));
+			node->rotate(-45, vec3(0, 1, 0));
+			_light->set_color(vec4(1, 1, 1, 1));
+			_light->set_kind(atom_directional);
+			li->set_node(node);
+			li->set_light(_light);
+			app_scene->add_light_instance(li);
+			//light *l = new light();
+			//light_instance *li = new light_instance();
+			//scene_node *n = new scene_node();
+			//app_scene->add_child(n);
+			//n->translate(vec3(0.0f, 50, -50));
+			//n->rotate(-45, vec3(1, 0, 0));
+			////n->rotate(-180, vec3(0, 1, 0));
+			//l->set_color(vec4(1, 1, 1, 1));
+			//l->set_kind(atom_directional);
+			//li->set_node(n);
+			//li->set_light(l);
+			//app_scene->add_light_instance(li);
 		}
 
 	public:
@@ -180,24 +232,26 @@ namespace octet
 			camera->get_node()->translate(vec3(10, 10, 0));
 			camera->set_far_plane(10000);
 
-			mat4t mat;
+			add_light_instances();
 
+			mat4t mat;
 			mat.loadIdentity();
 			//mat.translate(0, -0.5f, 0);
 
 			initialize_waves();
-			update_uniform_variables();
-			
+			update_uniform_variables();		
 
 			param_shader* water_shader = new param_shader("shaders/basewater.vs", "shaders/default_solid.fs");
-			water_material = new material(vec4(0.0f, 0.25f, 0.75f, 0.25f), water_shader);
+			water_material = new material(vec4(0.0f, 0.0f, 1.0f, 1.0f), water_shader);
 			
 			register_uniforms();
 			update_uniforms();
 
+			terrainmesh = new mesh_terrain(vec3(1000.0f, 0.0f, 1000.0f), ivec3(400, 1, 400), water_source);
+
 			app_scene->add_shape(
 				mat,
-				new mesh_terrain(vec3(100.0f, 0.0f, 100.0f), ivec3(400, 1, 400), water_source),
+				terrainmesh,
 				water_material,
 				false, 0
 				);
