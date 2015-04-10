@@ -20,6 +20,7 @@ int main(int argc, char **argv) {
 
   // our application.
   octet::OceanWaterGLSL app(argc, argv);
+  //octet::OceanWater app(argc, argv);
   app.init();
 
   // open windows

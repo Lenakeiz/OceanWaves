@@ -36,7 +36,7 @@ namespace octet {
 			om->SetMode(1);
 		}
 		else if (is_key_going_down('2')){
-			om->SetMode(5);
+			om->SetMode(4);
 		}
 		/*else if (is_key_going_down('3')){
 			om->SetMode(2);

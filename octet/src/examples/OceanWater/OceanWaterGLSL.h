@@ -41,7 +41,9 @@ namespace octet
 		ref<param_uniform> uniform_dir_x;
 		ref<param_uniform> uniform_dir_z;
 		ref<param_uniform> uniform_steepness;
-
+		
+		//
+		bool skybox = true;
 		void initialize_waves()
 		{
 			_totalSteepness = rand.get(0.0f, 1.0f);
@@ -51,11 +53,20 @@ namespace octet
 				OceanTerrainMesh::GerstnerWave* gw = new OceanTerrainMesh::GerstnerWave(rand.get(0.0f, 100.0f), rand.get(0.1f, 2.0f), rand.get(0.2f, 1.5f), vec3(rand.get(0.0f, 1.0f), 0.0f, rand.get(0.0f, 1.0f)).normalize(), _totalSteepness);
 				waves.push_back(*gw);
 			}
+
+			for (int i = 0; i != 8; ++i){
+				waves[i].amplitude = (1.0f + i / 8.0f)*0.25;
+				waves[i].speed = 0.5f + i / 40.0f;
+				waves[i].wavelength = 6.5f + i / 5.0f;
+				waves[i].direction = vec3(i / 4.0f, 0.0, 1 - i / 8.0f).normalize();// dir_x[i] = i / 4.0f;
+				waves[i].steepness = 0.0f;
+			}
+
 		}
 		
 		void update_uniform_variables()
 		{
-			for (size_t i = 0; i < 8; ++i)
+			for (size_t i = 0; i != 8; ++i)
 			{
 				if (i < n_waves)
 				{
@@ -179,32 +190,8 @@ namespace octet
 
 		void add_light_instances()
 		{
-			light *_light = new light();
-			light_instance *li = new light_instance();
-			scene_node *node = new scene_node();
-			app_scene->add_child(node);
-			node->translate(vec3(100, 100, 100));
-			node->rotate(45, vec3(1, 0, 0));
-			node->rotate(45, vec3(0, 1, 0));
-			_light->set_color(vec4(1, 1, 1, 1));
-			_light->set_kind(atom_directional);
-			li->set_node(node);
-			li->set_light(_light);
-			app_scene->add_light_instance(li);
-			node = new scene_node();
-			app_scene->add_child(node);
-			_light = new light();
-			li = new light_instance();
-			node->translate(vec3(-100, 100, -100));
-			node->rotate(45, vec3(1, 0, 0));
-			node->rotate(-45, vec3(0, 1, 0));
-			_light->set_color(vec4(1, 1, 1, 1));
-			_light->set_kind(atom_directional);
-			li->set_node(node);
-			li->set_light(_light);
-			app_scene->add_light_instance(li);
 			//light *l = new light();
-			//light_instance *li = new light_instance();
+			//li = new light_instance();
 			//scene_node *n = new scene_node();
 			//app_scene->add_child(n);
 			//n->translate(vec3(0.0f, 50, -50));
@@ -215,6 +202,19 @@ namespace octet
 			//li->set_node(n);
 			//li->set_light(l);
 			//app_scene->add_light_instance(li);
+
+			light *l = new light();
+			light_instance *li = new light_instance();
+			scene_node *n = new scene_node();
+			app_scene->add_child(n);
+			n->translate(vec3(0.0f, 50.0f, 0.0f));
+			n->rotate(-180, vec3(1, 0, 0));
+			//n->rotate(-180, vec3(0, 1, 0));
+			l->set_color(vec4(1, 1, 1, 1));
+			l->set_kind(atom_diffuse_light);
+			li->set_node(n);
+			li->set_light(l);
+			app_scene->add_light_instance(li);
 		}
 
 	public:
@@ -227,27 +227,26 @@ namespace octet
 
 			mouse_look_helper.init(this, 200.0f / 360.0f, false);
 			app_scene = new visual_scene();
+			add_light_instances();
 			app_scene->create_default_camera_and_lights();
 			camera = app_scene->get_camera_instance(0);
 			camera->get_node()->translate(vec3(10, 10, 0));
-			camera->set_far_plane(10000);
-
-			add_light_instances();
+			camera->set_far_plane(10000);		
 
 			mat4t mat;
 			mat.loadIdentity();
-			//mat.translate(0, -0.5f, 0);
+			mat.translate(0, 40, 0);
 
 			initialize_waves();
 			update_uniform_variables();		
 
-			param_shader* water_shader = new param_shader("shaders/basewater.vs", "shaders/default_solid.fs");
-			water_material = new material(vec4(0.0f, 0.0f, 1.0f, 1.0f), water_shader);
+			param_shader* water_shader = new param_shader("shaders/basewater.vs", "shaders/base_shader.fs");
+			water_material = new material(vec4(0.2f, 0.5f, 1.0f, 1.0f), water_shader);
 			
 			register_uniforms();
 			update_uniforms();
 
-			terrainmesh = new mesh_terrain(vec3(1000.0f, 0.0f, 1000.0f), ivec3(400, 1, 400), water_source);
+			terrainmesh = new mesh_terrain(vec3(100.0f, 0.0f, 100.0f), ivec3(400, 1, 400), water_source);
 
 			app_scene->add_shape(
 				mat,
@@ -255,6 +254,9 @@ namespace octet
 				water_material,
 				false, 0
 				);
+
+			app_scene->add_mesh_instance(new mesh_instance(new scene_node, new mesh_sphere(vec3(0, 0, 0), 500), new material(new image("assets/skydome/skydome1.png"))));
+
 		}
 
 		/// this is called to draw the world
@@ -263,13 +265,13 @@ namespace octet
 			
 			int vx = 0, vy = 0;
 			get_viewport_size(vx, vy);
-			app_scene->begin_render(vx, vy);
+			app_scene->begin_render(vx, vy, vec4(0.0f,0.0f,0.0f,1.0f));
 
 			keyboard();
 			mouse();
 
-			glClearColor(0, 0, 0, 1);
-			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+			//glClearColor(0, 0, 0, 1);
+			//glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 			water_material->set_uniform(uniform_time, &update_time, sizeof(update_time));
 
