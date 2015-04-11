@@ -15,8 +15,7 @@ namespace octet
 					) 
 				{
 				
-					float y = 0.0f;
-					vec3 p = bb_min + pos + vec3(0, y, 0);
+					vec3 p = bb_min + pos;
 					vec3 normal = normalize(vec3(0, 1, 0));
 					vec3 uv = uv_min + vec3((float)pos.x(), (float)pos.z(), 0) * uv_delta;
 					return mesh::vertex(p, normal, uv);

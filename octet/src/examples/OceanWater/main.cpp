@@ -10,7 +10,7 @@
 #define GLSLACTIVE 1
 
 #include "../../octet.h"
-
+#include "../../../open_source/AntTweakBar/include/AntTweakBar.h"
 #include "OceanWaterGLSL.h"
 #include "OceanWater.h"
 
@@ -18,19 +18,17 @@
 int main(int argc, char **argv) {
   // set up the platform.
   octet::app::init_all(argc, argv);
-  octet::OceanWaterGLSL app(argc, argv);
+  
   // our application.
-//#ifdef GLSLACTIVE
-//
-//  
-//
-//#else 
-//
-//  octet::OceanWater app(argc, argv);
-//  
-//#endif// DEBUG
+#ifdef GLSLACTIVE
 
-  //
+  octet::OceanWaterGLSL app(argc, argv);
+
+#else 
+
+  octet::OceanWater app(argc, argv);
+  
+#endif// DEBUG
  
   app.init();
 

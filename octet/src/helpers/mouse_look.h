@@ -26,8 +26,13 @@ namespace octet { namespace helpers {
       this->the_app = the_app;
       this->sensitivity = sensitivity;
       this->invert_mouse = invert_mouse;
-      the_app->disable_cursor();
+      //the_app->disable_cursor();
     }
+
+	/// reset absolute value of the camera
+	void reset_mouse_center() {
+		the_app->reset_abs_mouse_position();
+	}
 
     /// set this to reset the camera look (for example at the start of a level).
     void set_mouse_center(int x, int y) {

@@ -10,10 +10,10 @@ uniform sampler2D diffuse_sampler;
 
 // inputs
 varying vec3 normal_;
-varying vec3 camera_pos_;
 varying vec2 uv_;
 varying vec4 color_;
 varying vec3 model_pos_;
+varying vec3 camera_pos_;
 
 void main() {
   vec4 diffuse = texture2D(diffuse_sampler, uv_);

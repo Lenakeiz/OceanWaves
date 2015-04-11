@@ -43,7 +43,7 @@ vec3 calcutateGerstnerPosition()
 	
 	for(int i=0; i < n_waves; ++i)
 	{
-		frequency = 2 * PI / wavelength[i];
+		frequency = 2.0 * PI / wavelength[i];
 	    phase = speed[i] * frequency;
 		vec2 dir = normalize(vec2(dir_x[i],dir_z[i]));
 		vec2 position = vec2(pos.x,pos.z);
@@ -61,6 +61,7 @@ vec3 calcutateGerstnerPosition()
 vec3 calculateGersterNormal(vec3 finalPos)
 {
 	vec3 normal = vec3(0.0,1.0,0.0);
+	vec3 normalizedirection = vec3(0.0,0.0,0.0);
 	float frequency;
 	float phase;
 	float displacement;
@@ -69,7 +70,8 @@ vec3 calculateGersterNormal(vec3 finalPos)
 	{
 		frequency = 2.0 * PI / wavelength[i];
 	    phase = speed[i] * frequency;
-		displacement = dot(vec3(dir_x[i],0.0,dir_z[i]),finalPos);
+		normalizedirection = normalize(vec3(dir_x[i],0.0,dir_z[i]));
+		displacement = dot(normalizedirection,finalPos);
 		normal += vec3(
 							- dir_x[i] * amplitude[i] * frequency * cos(displacement * frequency + phase * time),
 							- steepness[i] * amplitude[i] * frequency * sin(displacement * frequency + phase * time),
@@ -86,6 +88,8 @@ void main() {
   vec3 tnormal = (modelToCamera * vec4(calculateGersterNormal(finalPosition), 0.0)).xyz;
   //vec3 tnormal = (modelToCamera * vec4(normal_calculation(), 0.0)).xyz;
   vec3 tpos = (modelToCamera * vec4(finalPosition, pos.w)).xyz;
+  
+  //setting outputs
   normal_ = tnormal;
   uv_ = uv;
   color_ = color;

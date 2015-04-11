@@ -151,7 +151,7 @@ namespace octet {
       y = mouse_y;
     }
 
-    int get_mouse_wheel() {
+	int get_mouse_wheel() {
       return mouse_wheel;
     }
 
@@ -203,6 +203,12 @@ namespace octet {
       y = mouse_abs_y;
     }
 
+
+	void reset_abs_mouse_position()
+	{
+		mouse_abs_x = 0;
+		mouse_abs_y = 0;
+	}
     // used by the platform to set mouse wheel clicks
     void set_mouse_wheel(int z) {
       mouse_wheel = z;

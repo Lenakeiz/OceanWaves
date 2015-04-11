@@ -1,7 +1,6 @@
 //////////////////////////////////////////////////////////////////////////////////////////
 //
-// default frament shader for solid colours
-//
+// base fragment shader for water terrain
 
 // constant parameters
 uniform vec4 lighting[17];
@@ -9,10 +8,11 @@ uniform int num_lights;
 uniform vec4 diffuse;
 
 // inputs
-varying vec2 uv_;
 varying vec3 normal_;
-varying vec3 camera_pos_;
+varying vec2 uv_;
 varying vec4 color_;
+varying vec3 model_pos_;
+varying vec3 camera_pos_;
 
 void main() {
 	vec3 nnormal = normalize(normal_);
